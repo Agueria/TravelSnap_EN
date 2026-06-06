@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -208,13 +208,6 @@ export default function TripDetailScreen() {
               <Ionicons name="images-outline" size={20} color={Colors.primary} />
               <Text style={styles.galleryButtonText}>Gallery ({galleryCount})</Text>
             </Pressable>
-
-            <Link href={{ pathname: '/trip/edit/[id]', params: { id } }} asChild>
-              <Pressable style={styles.editButton}>
-                <Ionicons name="create-outline" size={20} color={Colors.primary} />
-                <Text style={styles.editButtonText}>Edit</Text>
-              </Pressable>
-            </Link>
           </View>
 
           <Text style={styles.tripTitle}>{title}</Text>
@@ -232,6 +225,14 @@ export default function TripDetailScreen() {
           <View style={styles.starsRow}>
             <RatingStars rating={rating} />
           </View>
+
+          <Pressable
+            style={styles.editButton}
+            onPress={() => router.push(`/trip/edit/${trip.id}`)}
+          >
+            <Ionicons name="create-outline" size={18} color={Colors.background} />
+            <Text style={styles.editButtonText}>Edit trip</Text>
+          </Pressable>
 
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Back to list</Text>
@@ -333,16 +334,17 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.card,
-    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
   },
   editButtonText: {
-    color: Colors.primary,
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.background,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   tripTitle: {
     fontSize: 24,

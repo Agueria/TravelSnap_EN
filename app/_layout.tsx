@@ -33,6 +33,13 @@ export default function RootLayout() {
           name="trip/gallery/[id]"
           options={{ animation: 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="trip/edit/[id]"
+          options={{
+            title: 'Edit Trip',
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
       <StatusBar style="light" />
     </TripProvider>

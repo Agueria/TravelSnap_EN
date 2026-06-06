@@ -1,123 +1,106 @@
-import { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Controller, useForm } from 'react-hook-form';
 
+import TripFormFields from '@/components/TripFormFields';
 import { Colors } from '@/constants/Colors';
+import { useTrips } from '@/contexts/TripContext';
 import { useImagePicker } from '@/hooks/useImagePicker';
-import type { TripData } from '@/types/trip';
+import { tripSchema } from '@/types/tripSchema';
+import type { TripFormData } from '@/types/tripSchema';
 
-interface AddTripFormProps {
-  onAdd: (trip: TripData, id: string) => void;
-}
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const validate = (
-  title: string,
-  destination: string,
-  date: string,
-  rating: string
-): string | null => {
-  if (!title.trim() || !destination.trim() || !date.trim() || !rating.trim())
-    return 'All fields are required!';
-  if (!DATE_REGEX.test(date))
-    return 'Date must be in YYYY-MM-DD format!';
-  const ratingNum = Number(rating);
-  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5)
-    return 'Rating must be a number between 1 and 5!';
-  return null;
+const defaultValues: TripFormData = {
+  title: '',
+  destination: '',
+  date: '',
+  rating: 3,
+  imageUri: undefined,
+  galleryUris: [],
 };
 
-export default function AddTripForm({ onAdd }: AddTripFormProps) {
+export default function AddTripForm() {
   const [tripId] = useState(() => Date.now().toString());
-  const [title, setTitle] = useState('');
-  const [destination, setDestination] = useState('');
-  const [date, setDate] = useState('');
-  const [rating, setRating] = useState('');
-  const [imageUri, setImageUri] = useState<string | undefined>();
+  const { addTrip } = useTrips();
+  const router = useRouter();
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { isSubmitting },
+  } = useForm<TripFormData>({
+    resolver: zodResolver(tripSchema),
+    mode: 'onBlur',
+    defaultValues,
+  });
 
   const { handleAddPhoto } = useImagePicker({
     tripId,
-    onSaved: setImageUri,
+    onSaved: (uri) => {
+      setValue('imageUri', uri, { shouldDirty: true, shouldValidate: true });
+      setValue('galleryUris', [uri], { shouldDirty: true });
+    },
     aspect: [16, 9],
   });
 
-  const handleSubmit = (): void => {
-    const error = validate(title, destination, date, rating);
-    if (error) {
-      Alert.alert('Error', error);
-      return;
+  const onSubmit = async (data: TripFormData): Promise<void> => {
+    try {
+      await addTrip(data, tripId);
+      reset(defaultValues);
+      router.back();
+    } catch (err) {
+      Alert.alert('Could not save', String(err));
     }
-
-    onAdd(
-      {
-        title: title.trim(),
-        destination: destination.trim(),
-        date: date.trim(),
-        rating: Number(rating),
-        imageUri,
-        galleryUris: imageUri ? [imageUri] : [],
-      },
-      tripId
-    );
-
-    setTitle('');
-    setDestination('');
-    setDate('');
-    setRating('');
-    setImageUri(undefined);
   };
 
   return (
     <View style={styles.form}>
       <Text style={styles.formTitle}>Add new trip</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        placeholderTextColor={Colors.textSecondary}
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Destination"
-        placeholderTextColor={Colors.textSecondary}
-        value={destination}
-        onChangeText={setDestination}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
-        placeholderTextColor={Colors.textSecondary}
-        value={date}
-        onChangeText={setDate}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Rating (1-5)"
-        placeholderTextColor={Colors.textSecondary}
-        value={rating}
-        onChangeText={setRating}
-        keyboardType="numeric"
+      <TripFormFields control={control} />
+
+      <Controller
+        control={control}
+        name="imageUri"
+        render={({ field }) =>
+          field.value ? (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: field.value }} style={styles.preview} />
+              <Pressable style={styles.changePhotoButton} onPress={handleAddPhoto}>
+                <Text style={styles.changePhotoText}>Change photo</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.photoPlaceholder} onPress={handleAddPhoto}>
+              <Ionicons name="camera-outline" size={32} color={Colors.textSecondary} />
+              <Text style={styles.photoPlaceholderText}>Add a photo</Text>
+            </Pressable>
+          )
+        }
       />
 
-      {imageUri ? (
-        <View style={styles.previewContainer}>
-          <Image source={{ uri: imageUri }} style={styles.preview} />
-          <Pressable style={styles.changePhotoButton} onPress={handleAddPhoto}>
-            <Text style={styles.changePhotoText}>Change photo</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable style={styles.photoPlaceholder} onPress={handleAddPhoto}>
-          <Ionicons name="camera-outline" size={32} color={Colors.textSecondary} />
-          <Text style={styles.photoPlaceholderText}>Add a photo</Text>
-        </Pressable>
-      )}
-
-      <Pressable style={styles.addButton} onPress={handleSubmit}>
-        <Text style={styles.addButtonText}>Add Trip</Text>
+      <Pressable
+        style={[styles.addButton, isSubmitting && styles.addButtonDisabled]}
+        onPress={handleSubmit(onSubmit)}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color={Colors.background} />
+        ) : (
+          <Text style={styles.addButtonText}>Save</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -138,16 +121,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: Colors.textPrimary,
-  },
-  input: {
-    backgroundColor: Colors.inputBg,
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
     color: Colors.textPrimary,
   },
   photoPlaceholder: {
@@ -186,14 +159,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
   },
+  addButtonDisabled: {
+    opacity: 0.5,
+  },
   addButtonText: {
-    color: Colors.textPrimary,
+    color: Colors.background,
     fontWeight: 'bold',
     fontSize: 16,
   },
