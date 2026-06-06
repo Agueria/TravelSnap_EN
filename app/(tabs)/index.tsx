@@ -1,11 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import type { ListRenderItemInfo } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AnimatedTripCard from '@/components/AnimatedTripCard';
+import FAB from '@/components/FAB';
 import ScreenHeader from '@/components/ScreenHeader';
-import TripCard from '@/components/TripCard';
 import TripStats from '@/components/TripStats';
 import EmptyState from '@/components/ui/EmptyState';
 import { Colors } from '@/constants/Colors';
@@ -39,8 +41,13 @@ export default function HomeScreen() {
   }, [router]);
 
   const renderTrip = useCallback(
-    ({ item }: { item: Trip }) => (
-      <TripCard trip={item} onPress={handleTripPress} onDelete={handleDeleteTrip} />
+    ({ item, index }: ListRenderItemInfo<Trip>) => (
+      <AnimatedTripCard
+        trip={item}
+        index={index}
+        onPress={handleTripPress}
+        onDelete={handleDeleteTrip}
+      />
     ),
     [handleDeleteTrip, handleTripPress]
   );
@@ -71,10 +78,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenHeader tripCount={trips.length} />
-      <FlatList
+      <Animated.FlatList
         data={sortedTrips}
         keyExtractor={(item) => item.id}
         renderItem={renderTrip}
+        itemLayoutAnimation={LinearTransition.springify()}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.content}
@@ -85,9 +93,7 @@ export default function HomeScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
       />
 
-      <Pressable style={styles.fab} onPress={handleAddTrip}>
-        <Ionicons name="add" size={28} color={Colors.background} />
-      </Pressable>
+      <FAB onPress={handleAddTrip} />
     </SafeAreaView>
   );
 }
@@ -109,21 +115,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
 });
