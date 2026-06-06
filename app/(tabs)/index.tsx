@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ScreenHeader from '@/components/ScreenHeader';
@@ -9,10 +10,53 @@ import TripStats from '@/components/TripStats';
 import EmptyState from '@/components/ui/EmptyState';
 import { Colors } from '@/constants/Colors';
 import { useTrips } from '@/contexts/TripContext';
+import type { Trip } from '@/types/trip';
 
 export default function HomeScreen() {
   const { trips, deleteTrip, loading } = useTrips();
   const router = useRouter();
+
+  const sortedTrips = useMemo(() => {
+    return [...trips].sort((a, b) => b.rating - a.rating);
+  }, [trips]);
+
+  const handleTripPress = useCallback(
+    (id: string) => {
+      router.push({ pathname: '/trip/[id]', params: { id } });
+    },
+    [router]
+  );
+
+  const handleDeleteTrip = useCallback(
+    (id: string) => {
+      void deleteTrip(id);
+    },
+    [deleteTrip]
+  );
+
+  const handleAddTrip = useCallback(() => {
+    router.push('/add-trip');
+  }, [router]);
+
+  const renderTrip = useCallback(
+    ({ item }: { item: Trip }) => (
+      <TripCard trip={item} onPress={handleTripPress} onDelete={handleDeleteTrip} />
+    ),
+    [handleDeleteTrip, handleTripPress]
+  );
+
+  const renderHeader = useCallback(() => <TripStats trips={trips} />, [trips]);
+
+  const renderEmpty = useCallback(
+    () => (
+      <EmptyState
+        icon="airplane-outline"
+        title="No trips yet"
+        subtitle="Add your first trip!"
+      />
+    ),
+    []
+  );
 
   if (loading) {
     return (
@@ -27,31 +71,21 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenHeader tripCount={trips.length} />
-      <ScrollView contentContainerStyle={styles.content} style={styles.container}>
-        <TripStats trips={trips} />
+      <FlatList
+        data={sortedTrips}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTrip}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.content}
+        style={styles.container}
+        initialNumToRender={10}
+        windowSize={5}
+        maxToRenderPerBatch={8}
+        removeClippedSubviews={Platform.OS === 'android'}
+      />
 
-        {trips.length === 0 ? (
-          <EmptyState
-            icon="airplane-outline"
-            title="No trips yet"
-            subtitle="Add your first trip!"
-          />
-        ) : (
-          trips.map((trip) => (
-            <Link
-              key={trip.id}
-              href={{ pathname: '/trip/[id]', params: { id: trip.id } }}
-              asChild
-            >
-              <Pressable>
-                <TripCard {...trip} onDelete={() => void deleteTrip(trip.id)} />
-              </Pressable>
-            </Link>
-          ))
-        )}
-      </ScrollView>
-
-      <Pressable style={styles.fab} onPress={() => router.push('/add-trip')}>
+      <Pressable style={styles.fab} onPress={handleAddTrip}>
         <Ionicons name="add" size={28} color={Colors.background} />
       </Pressable>
     </SafeAreaView>

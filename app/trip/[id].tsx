@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +23,7 @@ import type { UnsplashResponse } from '@/types/unsplash';
 import { extractCountry } from '@/utils/destination';
 
 const UNSPLASH_KEY_PLACEHOLDER = 'PASTE_UNSPLASH_ACCESS_KEY_HERE';
+const HERO_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
 
 interface HeroStatusOptions {
   unsplashConfigured: boolean;
@@ -161,7 +162,14 @@ export default function TripDetailScreen() {
       <ScrollView style={styles.screen} bounces={false}>
         <View style={styles.heroFrame}>
           {heroUri ? (
-            <Image source={{ uri: heroUri }} style={styles.heroImage} />
+            <Image
+              source={{ uri: heroUri }}
+              style={styles.heroImage}
+              placeholder={{ blurhash: HERO_BLURHASH }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={300}
+            />
           ) : (
             <View style={styles.heroPlaceholder}>
               {photoLoading ? (

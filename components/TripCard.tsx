@@ -1,35 +1,50 @@
-import { Image, StyleSheet, Text, View, Pressable } from 'react-native';
-import type { GestureResponderEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import React, { useCallback } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { GestureResponderEvent } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
-import type { TripData } from '@/types/trip';
+import type { Trip } from '@/types/trip';
 
 import RatingStars from './RatingStars';
 
-interface TripCardProps extends TripData {
-  onDelete?: () => void;
+const TRIP_IMAGE_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
+
+interface TripCardProps {
+  trip: Trip;
+  onPress: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function TripCard({
-  title,
-  destination,
-  date,
-  rating,
-  imageUri,
-  galleryUris,
-  onDelete,
-}: TripCardProps) {
-  const handleDeletePress = (event: GestureResponderEvent): void => {
-    event.stopPropagation();
-    onDelete?.();
-  };
-
+function TripCardComponent({ trip, onPress, onDelete }: TripCardProps) {
+  const { id, title, destination, date, rating, imageUri, galleryUris } = trip;
   const galleryCount = galleryUris?.length ?? 0;
 
+  const handlePress = useCallback((): void => {
+    onPress(id);
+  }, [id, onPress]);
+
+  const handleDeletePress = useCallback(
+    (event: GestureResponderEvent): void => {
+      event.stopPropagation();
+      onDelete?.(id);
+    },
+    [id, onDelete]
+  );
+
   return (
-    <View style={styles.card}>
-      {imageUri && <Image source={{ uri: imageUri }} style={styles.cardImage} />}
+    <Pressable style={styles.card} onPress={handlePress}>
+      {imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.cardImage}
+          placeholder={{ blurhash: TRIP_IMAGE_BLURHASH }}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+      ) : null}
 
       {galleryCount > 0 && (
         <View style={styles.galleryBadge}>
@@ -43,11 +58,11 @@ export default function TripCard({
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          {onDelete && (
+          {onDelete ? (
             <Pressable onPress={handleDeletePress} style={styles.deleteButton}>
               <Ionicons name="close" size={16} color={Colors.accent} />
             </Pressable>
-          )}
+          ) : null}
         </View>
         <Text style={styles.meta}>
           {destination} | {date}
@@ -55,9 +70,11 @@ export default function TripCard({
         <View style={styles.separator} />
         <RatingStars rating={rating} />
       </View>
-    </View>
+    </Pressable>
   );
 }
+
+export default React.memo(TripCardComponent);
 
 const styles = StyleSheet.create({
   card: {

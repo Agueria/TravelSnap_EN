@@ -1,10 +1,13 @@
+import { Image } from 'expo-image';
 import type { ReactElement } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { RESTCOUNTRIES_BASE_URL } from '@/constants/api';
 import { useFetch } from '@/hooks/useFetch';
 import type { Country } from '@/types/country';
+
+const FLAG_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
 
 interface CountryCardProps {
   countryName: string;
@@ -39,7 +42,14 @@ export function CountryCard({ countryName }: CountryCardProps): ReactElement | n
 
   return (
     <View style={styles.card}>
-      <Image source={{ uri: country.flags.png }} style={styles.flag} />
+      <Image
+        source={{ uri: country.flags.png }}
+        style={styles.flag}
+        placeholder={{ blurhash: FLAG_BLURHASH }}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={200}
+      />
       <View style={styles.content}>
         <Text style={styles.name}>{country.name.common}</Text>
         <Text style={styles.detail}>Capital: {country.capital?.[0] ?? '-'}</Text>
