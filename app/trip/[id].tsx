@@ -11,10 +11,72 @@ import {
   View,
 } from 'react-native';
 
+import { CountryCard } from '@/components/CountryCard';
+import ErrorView from '@/components/ErrorView';
 import RatingStars from '@/components/RatingStars';
 import { Colors } from '@/constants/Colors';
+import { UNSPLASH_ACCESS_KEY, UNSPLASH_BASE_URL } from '@/constants/api';
 import { useTrips } from '@/contexts/TripContext';
+import { useFetch } from '@/hooks/useFetch';
 import { useFavorites } from '@/hooks/useFavorites';
+import type { UnsplashResponse } from '@/types/unsplash';
+import { extractCountry } from '@/utils/destination';
+
+const UNSPLASH_KEY_PLACEHOLDER = 'PASTE_UNSPLASH_ACCESS_KEY_HERE';
+
+interface HeroStatusOptions {
+  unsplashConfigured: boolean;
+  photoLoading: boolean;
+  photoError: string | null;
+  photoData: UnsplashResponse | null;
+  hasOnlinePhoto: boolean;
+  hasLocalImage: boolean;
+}
+
+function hasUnsplashAccessKey(): boolean {
+  const accessKey = UNSPLASH_ACCESS_KEY.trim();
+  return accessKey.length > 0 && accessKey !== UNSPLASH_KEY_PLACEHOLDER;
+}
+
+function createUnsplashPhotoUrl(destination?: string): string {
+  if (!destination || !hasUnsplashAccessKey()) {
+    return '';
+  }
+
+  const query = encodeURIComponent(`${destination} travel landmark`);
+  const accessKey = encodeURIComponent(UNSPLASH_ACCESS_KEY.trim());
+  return (
+    `${UNSPLASH_BASE_URL}/search/photos?query=${query}` +
+    `&per_page=1&orientation=landscape&client_id=${accessKey}`
+  );
+}
+
+function createHeroStatusMessage({
+  unsplashConfigured,
+  photoLoading,
+  photoError,
+  photoData,
+  hasOnlinePhoto,
+  hasLocalImage,
+}: HeroStatusOptions): string | null {
+  const fallbackMessage = hasLocalImage
+    ? 'Showing saved trip photo.'
+    : 'No saved trip photo available.';
+
+  if (!unsplashConfigured) {
+    return `Unsplash key not configured. ${fallbackMessage}`;
+  }
+
+  if (photoError) {
+    return `Online photo unavailable. ${fallbackMessage}`;
+  }
+
+  if (!photoLoading && photoData !== null && !hasOnlinePhoto) {
+    return `No online photo found. ${fallbackMessage}`;
+  }
+
+  return null;
+}
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +86,12 @@ export default function TripDetailScreen() {
 
   const trip = trips.find((t) => t.id === id);
   const favorited = isFavorite(id);
+  const photoUrl = createUnsplashPhotoUrl(trip?.destination);
+  const {
+    data: photoData,
+    loading: photoLoading,
+    error: photoError,
+  } = useFetch<UnsplashResponse>(photoUrl);
 
   const handleDelete = (): void => {
     Alert.alert('Delete Trip', 'This action cannot be undone. Are you sure?', [
@@ -44,10 +112,11 @@ export default function TripDetailScreen() {
       <>
         <Stack.Screen options={{ title: 'Trip not found' }} />
         <View style={styles.screen}>
-          <Text style={styles.errorText}>Trip not found.</Text>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Back to list</Text>
-          </Pressable>
+          <ErrorView
+            message="Trip not found."
+            onRetry={() => router.back()}
+            retryLabel="Go back"
+          />
         </View>
       </>
     );
@@ -55,6 +124,17 @@ export default function TripDetailScreen() {
 
   const { title, destination, date, rating, imageUri, galleryUris } = trip;
   const galleryCount = galleryUris?.length ?? 0;
+  const countryName = extractCountry(destination);
+  const onlinePhoto = photoData?.results[0] ?? null;
+  const heroUri = onlinePhoto?.urls.regular ?? imageUri;
+  const heroStatusMessage = createHeroStatusMessage({
+    unsplashConfigured: photoUrl.length > 0,
+    photoLoading,
+    photoError,
+    photoData,
+    hasOnlinePhoto: Boolean(onlinePhoto),
+    hasLocalImage: Boolean(imageUri),
+  });
 
   return (
     <>
@@ -79,16 +159,47 @@ export default function TripDetailScreen() {
       />
 
       <ScrollView style={styles.screen} bounces={false}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.heroImage} />
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <Ionicons name="image-outline" size={64} color="#4A6FA5" />
-            <Text style={styles.placeholderText}>No photo</Text>
+        <View style={styles.heroFrame}>
+          {heroUri ? (
+            <Image source={{ uri: heroUri }} style={styles.heroImage} />
+          ) : (
+            <View style={styles.heroPlaceholder}>
+              {photoLoading ? (
+                <ActivityIndicator size="large" color={Colors.primary} />
+              ) : (
+                <Ionicons name="image-outline" size={64} color="#4A6FA5" />
+              )}
+              <Text style={styles.placeholderText}>
+                {photoLoading ? 'Loading photo...' : 'No photo'}
+              </Text>
+            </View>
+          )}
+
+          {photoLoading && heroUri ? (
+            <View style={styles.heroLoadingOverlay}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : null}
+        </View>
+
+        {onlinePhoto ? (
+          <View style={styles.attributionBar}>
+            <Text style={styles.attributionText}>
+              Photo by {onlinePhoto.user.name} on Unsplash
+            </Text>
           </View>
-        )}
+        ) : null}
+
+        {heroStatusMessage ? (
+          <View style={styles.heroStatusBar}>
+            <Ionicons name="cloud-offline-outline" size={16} color={Colors.textSecondary} />
+            <Text style={styles.heroStatusText}>{heroStatusMessage}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.body}>
+          <CountryCard countryName={countryName} />
+
           <View style={styles.actionRow}>
             <Pressable
               style={styles.galleryButton}
@@ -141,6 +252,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  heroFrame: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#1A2744',
+  },
   heroImage: {
     width: '100%',
     height: 250,
@@ -156,6 +272,41 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 16,
     color: Colors.textSecondary,
+  },
+  heroLoadingOverlay: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attributionBar: {
+    backgroundColor: Colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  attributionText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  heroStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.card,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  heroStatusText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
   },
   body: {
     padding: 24,
@@ -245,11 +396,5 @@ const styles = StyleSheet.create({
   headerButton: {
     marginRight: 8,
     padding: 4,
-  },
-  errorText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    marginBottom: 24,
-    padding: 24,
   },
 });
