@@ -16,7 +16,13 @@ export default function TripCard({ title, destination, date, rating, onDelete }:
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {onDelete && (
-          <Pressable onPress={onDelete} style={styles.deleteButton} hitSlop={8}>
+          <Pressable
+            onPress={onDelete}
+            style={styles.deleteButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Delete trip"
+          >
             <Ionicons name="trash-outline" size={18} color={Colors.accent} />
           </Pressable>
         )}

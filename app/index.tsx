@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AddTripForm from '@/components/AddTripForm';
@@ -23,8 +23,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <ScreenHeader tripCount={trips.length} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <TripStats trips={trips} />

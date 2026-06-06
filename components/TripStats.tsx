@@ -13,13 +13,13 @@ export default function TripStats({ trips }: TripStatsProps) {
     total === 0
       ? '0.0'
       : (trips.reduce((sum, trip) => sum + trip.rating, 0) / total).toFixed(1);
-  const countries = new Set(trips.map((trip) => trip.destination)).size;
+  const destinations = new Set(trips.map((trip) => trip.destination)).size;
 
   return (
     <View style={styles.row}>
       <Tile value={String(total)} label="Trips" />
       <Tile value={avgRating} label="Avg rating" />
-      <Tile value={String(countries)} label="Countries" />
+      <Tile value={String(destinations)} label="Destinations" />
     </View>
   );
 }
