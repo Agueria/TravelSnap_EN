@@ -19,6 +19,9 @@ interface Trip {
   rating: number;
 }
 
+const createTripId = () =>
+  `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export default function HomeScreen() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [title, setTitle] = useState('');
@@ -38,8 +41,13 @@ export default function HomeScreen() {
     }
 
     const ratingNumber = Number(trimmedRating);
-    if (!Number.isFinite(ratingNumber) || ratingNumber < 1 || ratingNumber > 5) {
-      Alert.alert('Invalid rating', 'Rating must be a number between 1 and 5.');
+    if (
+      !Number.isFinite(ratingNumber) ||
+      !Number.isInteger(ratingNumber) ||
+      ratingNumber < 1 ||
+      ratingNumber > 5
+    ) {
+      Alert.alert('Invalid rating', 'Rating must be a whole number between 1 and 5.');
       return;
     }
 
@@ -50,7 +58,7 @@ export default function HomeScreen() {
     }
 
     const newTrip: Trip = {
-      id: Date.now().toString(),
+      id: createTripId(),
       title: trimmedTitle,
       destination: trimmedDestination,
       date: trimmedDate,
