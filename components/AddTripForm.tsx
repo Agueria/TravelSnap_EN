@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -17,6 +18,7 @@ import TripFormFields from '@/components/TripFormFields';
 import { Colors } from '@/constants/Colors';
 import { useTrips } from '@/contexts/TripContext';
 import { useImagePicker } from '@/hooks/useImagePicker';
+import type { TripCoordinates } from '@/types/trip';
 import { tripSchema } from '@/types/tripSchema';
 import type { TripFormData } from '@/types/tripSchema';
 
@@ -28,6 +30,26 @@ const defaultValues: TripFormData = {
   imageUri: undefined,
   galleryUris: [],
 };
+
+async function geocodeDestination(
+  destination: string
+): Promise<TripCoordinates | undefined> {
+  try {
+    const [result] = await Location.geocodeAsync(destination);
+
+    if (!result) {
+      return undefined;
+    }
+
+    return {
+      latitude: result.latitude,
+      longitude: result.longitude,
+    };
+  } catch (error) {
+    console.warn('Failed to geocode destination.', error);
+    return undefined;
+  }
+}
 
 export default function AddTripForm() {
   const [tripId] = useState(() => Date.now().toString());
@@ -57,7 +79,10 @@ export default function AddTripForm() {
 
   const onSubmit = async (data: TripFormData): Promise<void> => {
     try {
-      await addTrip(data, tripId);
+      const coordinates = await geocodeDestination(data.destination);
+      const tripData: TripFormData = coordinates ? { ...data, coordinates } : data;
+
+      await addTrip(tripData, tripId);
       reset(defaultValues);
       router.back();
     } catch (err) {

@@ -11,6 +11,12 @@ export const tripSchema = z.object({
   rating: z.number().int().min(1, 'Rate at least 1 star').max(5),
   imageUri: z.string().optional(),
   galleryUris: z.array(z.string()).optional(),
+  coordinates: z
+    .object({
+      latitude: z.number(),
+      longitude: z.number(),
+    })
+    .optional(),
 });
 
 export type TripFormData = z.infer<typeof tripSchema>;
