@@ -29,8 +29,11 @@ const defaultValues: TripFormData = {
   galleryUris: [],
 };
 
+const createTripId = () =>
+  `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export default function AddTripForm() {
-  const [tripId] = useState(() => Date.now().toString());
+  const [tripId, setTripId] = useState(createTripId);
   const { addTrip } = useTrips();
   const router = useRouter();
 
@@ -59,6 +62,7 @@ export default function AddTripForm() {
     try {
       await addTrip(data, tripId);
       reset(defaultValues);
+      setTripId(createTripId());
       router.back();
     } catch (err) {
       Alert.alert('Could not save', String(err));

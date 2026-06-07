@@ -56,14 +56,14 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
   initRef.current = init;
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     const load = async (): Promise<void> => {
       if (!url) {
         setState({
           data: null,
           loading: false,
-          error: 'Missing URL',
+          error: null,
         });
         return;
       }
@@ -78,7 +78,10 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
       let nextError: string | null = null;
 
       try {
-        const response = await fetch(url, initRef.current);
+        const response = await fetch(url, {
+          ...initRef.current,
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -86,9 +89,10 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
 
         nextData = (await response.json()) as T;
       } catch (err) {
+        if (controller.signal.aborted) return;
         nextError = String(err);
       } finally {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setState({
             data: nextData,
             loading: false,
@@ -101,7 +105,7 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
     void load();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [url, initKey]);
 

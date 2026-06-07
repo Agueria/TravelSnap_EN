@@ -37,6 +37,7 @@ export default function RatingStars({
           onPress={() => onChange(i)}
           accessibilityRole="button"
           accessibilityLabel={`Rate ${i} star${i === 1 ? '' : 's'}`}
+          hitSlop={8}
           style={styles.touchTarget}
         >
           {icon}
@@ -55,8 +56,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   touchTarget: {
-    paddingVertical: 2,
-    paddingRight: 4,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   star: {
     marginRight: 4,
