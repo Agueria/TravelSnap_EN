@@ -9,6 +9,7 @@ export async function saveTrips(trips: Trip[]): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
   } catch (error) {
     console.warn('Failed to save trips to storage.', error);
+    throw error;
   }
 }
 
