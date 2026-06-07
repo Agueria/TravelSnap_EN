@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { Trip, TripData } from '@/types/trip';
@@ -21,33 +21,65 @@ interface TripProviderProps {
 export function TripProvider({ children }: TripProviderProps) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
+  const tripsRef = useRef<Trip[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const hydrate = async (): Promise<void> => {
-      const stored = await loadTrips();
-      setTrips(stored);
-      setLoading(false);
+      try {
+        const stored = await loadTrips();
+        if (!isMounted) return;
+        tripsRef.current = stored;
+        setTrips(stored);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
     void hydrate();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const updateAndPersistTrips = async (
+    updater: (current: Trip[]) => Trip[]
+  ): Promise<void> => {
+    const current = tripsRef.current;
+    const updated = updater(current);
+    if (updated === current) return;
+
+    tripsRef.current = updated;
+    setTrips(updated);
+    await saveTrips(updated);
+  };
 
   const addTrip = async (data: TripData, id?: string): Promise<void> => {
     const newTrip: Trip = { id: id ?? Date.now().toString(), ...data };
-    const updated = [newTrip, ...trips];
-    setTrips(updated);
-    await saveTrips(updated);
+    await updateAndPersistTrips((current) => [newTrip, ...current]);
   };
 
   const updateTrip = async (id: string, patch: Partial<TripData>): Promise<void> => {
-    const updated = trips.map((trip) => (trip.id === id ? { ...trip, ...patch } : trip));
-    setTrips(updated);
-    await saveTrips(updated);
+    await updateAndPersistTrips((current) => {
+      let didUpdate = false;
+      const updated = current.map((trip) => {
+        if (trip.id !== id) return trip;
+        didUpdate = true;
+        return { ...trip, ...patch };
+      });
+
+      return didUpdate ? updated : current;
+    });
   };
 
   const deleteTrip = async (id: string): Promise<void> => {
-    const updated = trips.filter((trip) => trip.id !== id);
-    setTrips(updated);
-    await saveTrips(updated);
+    await updateAndPersistTrips((current) => {
+      const updated = current.filter((trip) => trip.id !== id);
+      return updated.length === current.length ? current : updated;
+    });
   };
 
   return (

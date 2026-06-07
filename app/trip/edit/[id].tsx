@@ -1,30 +1,23 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { useTrips } from '@/contexts/TripContext';
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const validate = (
-  title: string,
-  destination: string,
-  date: string,
-  rating: string
-): string | null => {
-  if (!title.trim() || !destination.trim() || !date.trim() || !rating.trim())
-    return 'All fields are required!';
-  if (!DATE_REGEX.test(date)) return 'Date must be in YYYY-MM-DD format!';
-  const ratingNum = Number(rating);
-  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5)
-    return 'Rating must be a number between 1 and 5!';
-  return null;
-};
+import { validateTripForm } from '@/utils/tripValidation';
 
 export default function EditTripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trips, updateTrip } = useTrips();
+  const { trips, loading, updateTrip } = useTrips();
   const router = useRouter();
 
   const trip = trips.find((t) => t.id === id);
@@ -33,6 +26,26 @@ export default function EditTripScreen() {
   const [destination, setDestination] = useState(trip?.destination ?? '');
   const [date, setDate] = useState(trip?.date ?? '');
   const [rating, setRating] = useState(trip ? String(trip.rating) : '');
+
+  useEffect(() => {
+    if (!trip) return;
+
+    setTitle(trip.title);
+    setDestination(trip.destination);
+    setDate(trip.date);
+    setRating(String(trip.rating));
+  }, [trip]);
+
+  if (loading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Edit trip' }} />
+        <View style={[styles.screen, styles.centered]}>
+          <ActivityIndicator color={Colors.primary} />
+        </View>
+      </>
+    );
+  }
 
   if (!trip) {
     return (
@@ -46,7 +59,7 @@ export default function EditTripScreen() {
   }
 
   const handleSave = async (): Promise<void> => {
-    const error = validate(title, destination, date, rating);
+    const error = validateTripForm({ title, destination, date, rating });
     if (error) {
       Alert.alert('Error', error);
       return;
@@ -115,6 +128,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   form: {
     backgroundColor: Colors.card,

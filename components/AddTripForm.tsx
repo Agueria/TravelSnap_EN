@@ -5,28 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useImagePicker } from '@/hooks/useImagePicker';
 import type { TripData } from '@/types/trip';
+import { validateTripForm } from '@/utils/tripValidation';
 
 interface AddTripFormProps {
   onAdd: (trip: TripData, id: string) => void;
 }
-
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const validate = (
-  title: string,
-  destination: string,
-  date: string,
-  rating: string
-): string | null => {
-  if (!title.trim() || !destination.trim() || !date.trim() || !rating.trim())
-    return 'All fields are required!';
-  if (!DATE_REGEX.test(date))
-    return 'Date must be in YYYY-MM-DD format!';
-  const ratingNum = Number(rating);
-  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5)
-    return 'Rating must be a number between 1 and 5!';
-  return null;
-};
 
 export default function AddTripForm({ onAdd }: AddTripFormProps) {
   const [tripId] = useState(() => Date.now().toString());
@@ -43,7 +26,7 @@ export default function AddTripForm({ onAdd }: AddTripFormProps) {
   });
 
   const handleSubmit = (): void => {
-    const error = validate(title, destination, date, rating);
+    const error = validateTripForm({ title, destination, date, rating });
     if (error) {
       Alert.alert('Error', error);
       return;
