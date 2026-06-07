@@ -28,7 +28,7 @@ export default function TripDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Trip not found' }} />
-        <View style={styles.screen}>
+        <View style={[styles.screen, styles.errorContent]}>
           <Text style={styles.errorText}>Trip not found.</Text>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Back to list</Text>
@@ -115,6 +115,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 4,
   },
+  errorContent: {
+    padding: 16,
+    justifyContent: 'center',
+  },
   heroImage: {
     width: '100%',
     height: 250,
@@ -189,6 +193,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     marginBottom: 24,
-    padding: 24,
+    textAlign: 'center',
   },
 });

@@ -29,32 +29,34 @@ export default function TripCard({
 
   return (
     <View style={styles.card}>
-      {imageUri ? <Image source={{ uri: imageUri }} style={styles.cardImage} /> : null}
+      <View style={styles.cardInner}>
+        {imageUri ? <Image source={{ uri: imageUri }} style={styles.cardImage} /> : null}
 
-      <View style={styles.body}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
-          {onDelete && (
-            <Pressable onPress={handleDeletePress} style={styles.deleteButton}>
-              <Ionicons name="close" size={16} color={Colors.accent} />
-            </Pressable>
-          )}
-        </View>
+        <View style={styles.body}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            {onDelete && (
+              <Pressable onPress={handleDeletePress} style={styles.deleteButton}>
+                <Ionicons name="close" size={16} color={Colors.accent} />
+              </Pressable>
+            )}
+          </View>
 
-        <Text style={styles.meta}>
-          {destination} | {date}
-        </Text>
+          <Text style={styles.meta}>
+            {destination} | {date}
+          </Text>
 
-        <View style={styles.separator} />
+          <View style={styles.separator} />
 
-        <View style={styles.footer}>
-          <RatingStars rating={rating} />
-          {galleryCount > 0 && (
-            <View style={styles.galleryBadge}>
-              <Ionicons name="images" size={14} color={Colors.textSecondary} />
-              <Text style={styles.galleryBadgeText}>{galleryCount}</Text>
-            </View>
-          )}
+          <View style={styles.footer}>
+            <RatingStars rating={rating} />
+            {galleryCount > 0 && (
+              <View style={styles.galleryBadge}>
+                <Ionicons name="images" size={14} color={Colors.textSecondary} />
+                <Text style={styles.galleryBadgeText}>{galleryCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
     </View>
@@ -63,14 +65,17 @@ export default function TripCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
     borderRadius: 12,
     marginBottom: 12,
-    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  cardInner: {
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',

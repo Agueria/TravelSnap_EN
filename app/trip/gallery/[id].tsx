@@ -34,7 +34,7 @@ export default function TripGalleryScreen() {
   const itemSize = (screenWidth - GRID_GAP * (COLUMNS + 1)) / COLUMNS;
 
   const addPhotoToGallery = async (uri: string): Promise<void> => {
-    if (!id) return;
+    if (!id || !trip) return;
     try {
       const saved = await saveImageToTrip(uri, id);
       updateTrip(id, { galleryUris: [...galleryUris, saved] });
@@ -98,6 +98,18 @@ export default function TripGalleryScreen() {
   const headerTitle = trip
     ? `${trip.title} — ${galleryUris.length} photo${galleryUris.length === 1 ? '' : 's'}`
     : 'Gallery';
+
+  if (!trip) {
+    return (
+      <View style={styles.screen}>
+        <Stack.Screen options={{ title: 'Trip not found' }} />
+        <View style={styles.emptyState}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.textSecondary} />
+          <Text style={styles.emptyText}>Trip not found.</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -190,7 +202,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#61DAFB',
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,

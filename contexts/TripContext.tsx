@@ -29,9 +29,16 @@ export function TripProvider({ children }: TripProviderProps) {
   };
 
   const updateTrip = (id: string, data: Partial<TripData>): void => {
-    setTrips((current) =>
-      current.map((trip) => (trip.id === id ? { ...trip, ...data } : trip))
-    );
+    setTrips((current) => {
+      let didUpdate = false;
+      const updated = current.map((trip) => {
+        if (trip.id !== id) return trip;
+        didUpdate = true;
+        return { ...trip, ...data };
+      });
+
+      return didUpdate ? updated : current;
+    });
   };
 
   return (

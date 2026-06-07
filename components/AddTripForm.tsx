@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import type { TripData } from '@/types/trip';
-import { saveImageToTrip } from '@/utils/imageStorage';
+import { deleteImage, saveImageToTrip } from '@/utils/imageStorage';
 
 interface AddTripFormProps {
   onAdd: (trip: TripData, id?: string) => void;
@@ -36,6 +36,26 @@ export default function AddTripForm({ onAdd }: AddTripFormProps) {
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
 
   const tripIdRef = useRef<string>(Date.now().toString());
+  const pendingImageRef = useRef<string | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      if (pendingImageRef.current) {
+        void deleteImage(pendingImageRef.current).catch(() => undefined);
+      }
+    },
+    []
+  );
+
+  const replacePendingImage = (saved: string): void => {
+    const previous = pendingImageRef.current;
+    pendingImageRef.current = saved;
+    setImageUri(saved);
+
+    if (previous && previous !== saved) {
+      void deleteImage(previous).catch(() => undefined);
+    }
+  };
 
   const pickImage = async (): Promise<void> => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -47,7 +67,7 @@ export default function AddTripForm({ onAdd }: AddTripFormProps) {
     if (result.canceled) return;
     try {
       const saved = await saveImageToTrip(result.assets[0].uri, tripIdRef.current);
-      setImageUri(saved);
+      replacePendingImage(saved);
     } catch {
       Alert.alert('Error', 'Could not save photo.');
     }
@@ -67,7 +87,7 @@ export default function AddTripForm({ onAdd }: AddTripFormProps) {
     if (result.canceled) return;
     try {
       const saved = await saveImageToTrip(result.assets[0].uri, tripIdRef.current);
-      setImageUri(saved);
+      replacePendingImage(saved);
     } catch {
       Alert.alert('Error', 'Could not save photo.');
     }
@@ -103,6 +123,7 @@ export default function AddTripForm({ onAdd }: AddTripFormProps) {
     setDestination('');
     setDate('');
     setRating('');
+    pendingImageRef.current = undefined;
     setImageUri(undefined);
     tripIdRef.current = Date.now().toString();
   };
