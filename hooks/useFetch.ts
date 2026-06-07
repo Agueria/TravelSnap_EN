@@ -20,13 +20,10 @@ function normalizeValue(value: unknown): unknown {
   if (value && typeof value === 'object') {
     return Object.keys(value)
       .sort()
-      .reduce<Record<string, unknown>>(
-        (normalized, key) => ({
-          ...normalized,
-          [key]: normalizeValue((value as Record<string, unknown>)[key]),
-        }),
-        {}
-      );
+      .reduce<Record<string, unknown>>((normalized, key) => {
+        normalized[key] = normalizeValue((value as Record<string, unknown>)[key]);
+        return normalized;
+      }, {});
   }
 
   return value;

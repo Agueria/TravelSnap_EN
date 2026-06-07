@@ -59,7 +59,12 @@ function TripCardComponent({ trip, onPress, onDelete }: TripCardProps) {
             {title}
           </Text>
           {onDelete ? (
-            <Pressable onPress={handleDeletePress} style={styles.deleteButton}>
+            <Pressable
+              onPress={handleDeletePress}
+              style={styles.deleteButton}
+              accessibilityRole="button"
+              accessibilityLabel="Delete trip"
+            >
               <Ionicons name="close" size={16} color={Colors.accent} />
             </Pressable>
           ) : null}
