@@ -15,18 +15,18 @@ import { CountryCard } from '@/components/CountryCard';
 import ErrorView from '@/components/ErrorView';
 import RatingStars from '@/components/RatingStars';
 import { Colors } from '@/constants/Colors';
-import { UNSPLASH_ACCESS_KEY, UNSPLASH_BASE_URL } from '@/constants/api';
 import { useTrips } from '@/contexts/TripContext';
 import { useFetch } from '@/hooks/useFetch';
 import { useFavorites } from '@/hooks/useFavorites';
 import type { UnsplashResponse } from '@/types/unsplash';
 import { extractCountry } from '@/utils/destination';
+import { createUnsplashPhotoUrl, hasUnsplashAccessKey } from '@/utils/unsplash';
 
-const UNSPLASH_KEY_PLACEHOLDER = 'PASTE_UNSPLASH_ACCESS_KEY_HERE';
 const HERO_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
 
 interface HeroStatusOptions {
   unsplashConfigured: boolean;
+  hasDestination: boolean;
   photoLoading: boolean;
   photoError: string | null;
   photoData: UnsplashResponse | null;
@@ -34,26 +34,9 @@ interface HeroStatusOptions {
   hasLocalImage: boolean;
 }
 
-function hasUnsplashAccessKey(): boolean {
-  const accessKey = UNSPLASH_ACCESS_KEY.trim();
-  return accessKey.length > 0 && accessKey !== UNSPLASH_KEY_PLACEHOLDER;
-}
-
-function createUnsplashPhotoUrl(destination?: string): string {
-  if (!destination || !hasUnsplashAccessKey()) {
-    return '';
-  }
-
-  const query = encodeURIComponent(`${destination} travel landmark`);
-  const accessKey = encodeURIComponent(UNSPLASH_ACCESS_KEY.trim());
-  return (
-    `${UNSPLASH_BASE_URL}/search/photos?query=${query}` +
-    `&per_page=1&orientation=landscape&client_id=${accessKey}`
-  );
-}
-
 function createHeroStatusMessage({
   unsplashConfigured,
+  hasDestination,
   photoLoading,
   photoError,
   photoData,
@@ -63,6 +46,10 @@ function createHeroStatusMessage({
   const fallbackMessage = hasLocalImage
     ? 'Showing saved trip photo.'
     : 'No saved trip photo available.';
+
+  if (!hasDestination) {
+    return `Destination missing. ${fallbackMessage}`;
+  }
 
   if (!unsplashConfigured) {
     return `Unsplash key not configured. ${fallbackMessage}`;
@@ -128,8 +115,10 @@ export default function TripDetailScreen() {
   const countryName = extractCountry(destination);
   const onlinePhoto = photoData?.results[0] ?? null;
   const heroUri = onlinePhoto?.urls.regular ?? imageUri;
+  const unsplashConfigured = hasUnsplashAccessKey();
   const heroStatusMessage = createHeroStatusMessage({
-    unsplashConfigured: photoUrl.length > 0,
+    unsplashConfigured,
+    hasDestination: destination.trim().length > 0,
     photoLoading,
     photoError,
     photoData,

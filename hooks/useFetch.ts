@@ -44,6 +44,22 @@ function createInitKey(init?: RequestInit): string {
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  try {
+    return JSON.stringify(error) ?? 'Unexpected error';
+  } catch {
+    return 'Unexpected error';
+  }
+}
+
 export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
   const [state, setState] = useState<FetchState<T>>({
     data: null,
@@ -86,7 +102,7 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
 
         nextData = (await response.json()) as T;
       } catch (err) {
-        nextError = String(err);
+        nextError = getErrorMessage(err);
       } finally {
         if (!cancelled) {
           setState({
