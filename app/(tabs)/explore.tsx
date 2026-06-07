@@ -10,12 +10,10 @@ import {
 } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
-import { UNSPLASH_ACCESS_KEY, UNSPLASH_BASE_URL } from '@/constants/api';
 import { useFetch } from '@/hooks/useFetch';
 import type { UnsplashResponse } from '@/types/unsplash';
 import { extractCountry } from '@/utils/destination';
-
-const UNSPLASH_KEY_PLACEHOLDER = 'PASTE_UNSPLASH_ACCESS_KEY_HERE';
+import { createUnsplashPhotoUrl, hasUnsplashAccessKey } from '@/utils/unsplash';
 
 const POPULAR_DESTINATIONS = [
   {
@@ -55,31 +53,13 @@ interface DestinationCardProps {
   destination: Destination;
 }
 
-function hasUnsplashAccessKey(): boolean {
-  const accessKey = UNSPLASH_ACCESS_KEY.trim();
-  return accessKey.length > 0 && accessKey !== UNSPLASH_KEY_PLACEHOLDER;
-}
-
-function createUnsplashPhotoUrl(destination: string): string {
-  if (!hasUnsplashAccessKey()) {
-    return '';
-  }
-
-  const query = encodeURIComponent(`${destination} travel landmark`);
-  const accessKey = encodeURIComponent(UNSPLASH_ACCESS_KEY.trim());
-  return (
-    `${UNSPLASH_BASE_URL}/search/photos?query=${query}` +
-    `&per_page=1&orientation=landscape&client_id=${accessKey}`
-  );
-}
-
 function getDestinationPhotoStatus(
-  photoUrl: string,
+  unsplashConfigured: boolean,
   loading: boolean,
   error: string | null,
   hasPhoto: boolean
 ): string | null {
-  if (!photoUrl) {
+  if (!unsplashConfigured) {
     return 'Unsplash key missing';
   }
 
@@ -99,7 +79,12 @@ function DestinationCard({ destination }: DestinationCardProps) {
   const { data, loading, error } = useFetch<UnsplashResponse>(photoUrl);
   const photo = data?.results[0] ?? null;
   const country = extractCountry(destination.name);
-  const statusText = getDestinationPhotoStatus(photoUrl, loading, error, Boolean(photo));
+  const statusText = getDestinationPhotoStatus(
+    hasUnsplashAccessKey(),
+    loading,
+    error,
+    Boolean(photo)
+  );
 
   return (
     <View style={styles.card}>

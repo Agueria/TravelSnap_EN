@@ -63,7 +63,7 @@ export function useFetch<T>(url: string, init?: RequestInit): FetchState<T> {
         setState({
           data: null,
           loading: false,
-          error: 'Missing URL',
+          error: null,
         });
         return;
       }
