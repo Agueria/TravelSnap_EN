@@ -13,8 +13,6 @@ module.exports = ({ config }) => {
         apiKey: googleMapsApiKey,
       },
     };
-  } else {
-    delete android.config;
   }
 
   return {

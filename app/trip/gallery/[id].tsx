@@ -33,14 +33,25 @@ export default function GalleryScreen() {
   });
 
   const confirmDelete = async (uri: string): Promise<void> => {
+    const previousGalleryUris = trip?.galleryUris ?? [];
+    const previousImageUri = trip?.imageUri;
+
     try {
       await updateTrip(id, {
-        galleryUris: (trip?.galleryUris ?? []).filter((u) => u !== uri),
-        imageUri: trip?.imageUri === uri ? undefined : trip?.imageUri,
+        galleryUris: previousGalleryUris.filter((u) => u !== uri),
+        imageUri: previousImageUri === uri ? undefined : previousImageUri,
       });
       await deleteImage(uri);
       setSelectedUri(null);
     } catch (error) {
+      if (trip) {
+        await updateTrip(id, {
+          galleryUris: previousGalleryUris,
+          imageUri: previousImageUri,
+        }).catch((rollbackError) => {
+          console.warn('Failed to roll back gallery deletion.', rollbackError);
+        });
+      }
       Alert.alert('Could not delete photo', String(error));
     }
   };

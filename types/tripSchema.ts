@@ -6,7 +6,7 @@ export const tripSchema = z.object({
     .trim()
     .min(3, 'Title must be at least 3 characters')
     .max(60, 'Title must be at most 60 characters'),
-  destination: z.string().min(1, 'Destination is required').max(80),
+  destination: z.string().trim().min(1, 'Destination is required').max(80),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD format'),
   rating: z.number().int().min(1, 'Rate at least 1 star').max(5),
   imageUri: z.string().optional(),
