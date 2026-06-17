@@ -35,12 +35,19 @@ export default function GalleryScreen() {
   const confirmDelete = async (uri: string): Promise<void> => {
     const previousGalleryUris = trip?.galleryUris ?? [];
     const previousImageUri = trip?.imageUri;
+    const nextTripPatch = {
+      galleryUris: previousGalleryUris.filter((u) => u !== uri),
+      imageUri: previousImageUri === uri ? undefined : previousImageUri,
+    };
 
     try {
-      await updateTrip(id, {
-        galleryUris: previousGalleryUris.filter((u) => u !== uri),
-        imageUri: previousImageUri === uri ? undefined : previousImageUri,
-      });
+      await updateTrip(id, nextTripPatch);
+    } catch (error) {
+      Alert.alert('Could not delete photo', String(error));
+      return;
+    }
+
+    try {
       await deleteImage(uri);
       setSelectedUri(null);
     } catch (error) {
