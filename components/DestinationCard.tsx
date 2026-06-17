@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
-import { useFetch } from '@/hooks/useFetch';
 import type { UnsplashResponse } from '@/types/unsplash';
 import { extractCountry } from '@/utils/destination';
 import { createUnsplashPhotoUrl, hasUnsplashAccessKey } from '@/utils/unsplash';
@@ -18,6 +18,16 @@ export interface Destination {
 
 interface DestinationCardProps {
   destination: Destination;
+}
+
+async function fetchUnsplashPhotos(url: string): Promise<UnsplashResponse> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as UnsplashResponse;
 }
 
 function getDestinationPhotoStatus(
@@ -43,13 +53,22 @@ function getDestinationPhotoStatus(
 
 function DestinationCardComponent({ destination }: DestinationCardProps) {
   const photoUrl = createUnsplashPhotoUrl(destination.name);
-  const { data, loading, error } = useFetch<UnsplashResponse>(photoUrl);
+  const {
+    data,
+    isLoading: loading,
+    error,
+  } = useQuery<UnsplashResponse>({
+    queryKey: ['unsplash', 'destination', destination.name],
+    queryFn: () => fetchUnsplashPhotos(photoUrl),
+    enabled: Boolean(photoUrl),
+    networkMode: 'online',
+  });
   const photo = data?.results[0] ?? null;
   const country = extractCountry(destination.name);
   const statusText = getDestinationPhotoStatus(
     hasUnsplashAccessKey(),
     loading,
-    error,
+    error instanceof Error ? error.message : null,
     Boolean(photo)
   );
 

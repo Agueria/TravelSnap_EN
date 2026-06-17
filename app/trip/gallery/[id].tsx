@@ -23,17 +23,26 @@ export default function GalleryScreen() {
 
   const { handleAddPhoto } = useImagePicker({
     tripId: id,
-    onSaved: (uri) =>
-      updateTrip(id, { galleryUris: [...(trip?.galleryUris ?? []), uri] }),
+    onSaved: (uri) => {
+      void updateTrip(id, {
+        galleryUris: [...(trip?.galleryUris ?? []), uri],
+      }).catch((error) => {
+        Alert.alert('Could not save photo', String(error));
+      });
+    },
   });
 
   const confirmDelete = async (uri: string): Promise<void> => {
-    await deleteImage(uri);
-    updateTrip(id, {
-      galleryUris: (trip?.galleryUris ?? []).filter((u) => u !== uri),
-      imageUri: trip?.imageUri === uri ? undefined : trip?.imageUri,
-    });
-    setSelectedUri(null);
+    try {
+      await updateTrip(id, {
+        galleryUris: (trip?.galleryUris ?? []).filter((u) => u !== uri),
+        imageUri: trip?.imageUri === uri ? undefined : trip?.imageUri,
+      });
+      await deleteImage(uri);
+      setSelectedUri(null);
+    } catch (error) {
+      Alert.alert('Could not delete photo', String(error));
+    }
   };
 
   const handleDelete = (uri: string): void => {
@@ -98,8 +107,11 @@ export default function GalleryScreen() {
         onClose={() => setSelectedUri(null)}
         onDelete={handleDelete}
         onSetAsMain={(uri) => {
-          updateTrip(id, { imageUri: uri });
-          setSelectedUri(null);
+          void updateTrip(id, { imageUri: uri })
+            .then(() => setSelectedUri(null))
+            .catch((error) => {
+              Alert.alert('Could not update photo', String(error));
+            });
         }}
       />
     </>

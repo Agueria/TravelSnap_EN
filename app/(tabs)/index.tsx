@@ -11,11 +11,13 @@ import ScreenHeader from '@/components/ScreenHeader';
 import TripStats from '@/components/TripStats';
 import EmptyState from '@/components/ui/EmptyState';
 import { Colors } from '@/constants/Colors';
-import { useTrips } from '@/contexts/TripContext';
+import { useDeleteTripMutation } from '@/hooks/useTripMutations';
+import { useTripsQuery } from '@/hooks/useTripsQuery';
 import type { Trip } from '@/types/trip';
 
 export default function HomeScreen() {
-  const { trips, deleteTrip, loading } = useTrips();
+  const { data: trips = [], isLoading } = useTripsQuery();
+  const deleteTripMutation = useDeleteTripMutation();
   const router = useRouter();
 
   const sortedTrips = useMemo(() => {
@@ -31,9 +33,9 @@ export default function HomeScreen() {
 
   const handleDeleteTrip = useCallback(
     (id: string) => {
-      void deleteTrip(id);
+      deleteTripMutation.mutate(id);
     },
-    [deleteTrip]
+    [deleteTripMutation]
   );
 
   const handleAddTrip = useCallback(() => {
@@ -65,7 +67,7 @@ export default function HomeScreen() {
     []
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>

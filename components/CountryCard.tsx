@@ -1,16 +1,26 @@
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import type { ReactElement } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { RESTCOUNTRIES_BASE_URL } from '@/constants/api';
-import { useFetch } from '@/hooks/useFetch';
 import type { Country } from '@/types/country';
 
 const FLAG_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
 
 interface CountryCardProps {
   countryName: string;
+}
+
+async function fetchCountries(url: string): Promise<Country[]> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as Country[];
 }
 
 function formatCurrency(country: Country): string {
@@ -29,7 +39,16 @@ function formatCurrency(country: Country): string {
 
 export function CountryCard({ countryName }: CountryCardProps): ReactElement | null {
   const url = `${RESTCOUNTRIES_BASE_URL}/name/${encodeURIComponent(countryName)}`;
-  const { data, loading, error } = useFetch<Country[]>(url);
+  const {
+    data,
+    isLoading: loading,
+    error,
+  } = useQuery<Country[]>({
+    queryKey: ['country', countryName],
+    queryFn: () => fetchCountries(url),
+    enabled: countryName.trim().length > 0,
+    networkMode: 'online',
+  });
   const country = data?.[0];
 
   if (loading) {

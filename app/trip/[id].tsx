@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -16,13 +17,22 @@ import ErrorView from '@/components/ErrorView';
 import RatingStars from '@/components/RatingStars';
 import { Colors } from '@/constants/Colors';
 import { useTrips } from '@/contexts/TripContext';
-import { useFetch } from '@/hooks/useFetch';
 import { useFavorites } from '@/hooks/useFavorites';
 import type { UnsplashResponse } from '@/types/unsplash';
 import { extractCountry } from '@/utils/destination';
 import { createUnsplashPhotoUrl, hasUnsplashAccessKey } from '@/utils/unsplash';
 
 const HERO_BLURHASH = 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.';
+
+async function fetchUnsplashHero(url: string): Promise<UnsplashResponse> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as UnsplashResponse;
+}
 
 interface HeroStatusOptions {
   unsplashConfigured: boolean;
@@ -77,9 +87,14 @@ export default function TripDetailScreen() {
   const photoUrl = createUnsplashPhotoUrl(trip?.destination);
   const {
     data: photoData,
-    loading: photoLoading,
+    isLoading: photoLoading,
     error: photoError,
-  } = useFetch<UnsplashResponse>(photoUrl);
+  } = useQuery<UnsplashResponse>({
+    queryKey: ['unsplash', 'hero', trip?.destination],
+    queryFn: () => fetchUnsplashHero(photoUrl),
+    enabled: Boolean(photoUrl),
+    networkMode: 'online',
+  });
 
   const handleDelete = (): void => {
     Alert.alert('Delete Trip', 'This action cannot be undone. Are you sure?', [
@@ -87,9 +102,12 @@ export default function TripDetailScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          await deleteTrip(id);
-          router.back();
+        onPress: () => {
+          void deleteTrip(id)
+            .then(() => router.back())
+            .catch((err) => {
+              Alert.alert('Could not delete', String(err));
+            });
         },
       },
     ]);
@@ -120,8 +138,8 @@ export default function TripDetailScreen() {
     unsplashConfigured,
     hasDestination: destination.trim().length > 0,
     photoLoading,
-    photoError,
-    photoData,
+    photoError: photoError instanceof Error ? photoError.message : null,
+    photoData: photoData ?? null,
     hasOnlinePhoto: Boolean(onlinePhoto),
     hasLocalImage: Boolean(imageUri),
   });

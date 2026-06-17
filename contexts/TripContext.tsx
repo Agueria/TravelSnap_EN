@@ -1,8 +1,13 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext } from 'react';
 import type { ReactNode } from 'react';
 
 import type { Trip, TripData } from '@/types/trip';
-import { loadTrips, saveTrips } from '@/utils/tripStorage';
+import {
+  useAddTripMutation,
+  useDeleteTripMutation,
+  useUpdateTripMutation,
+} from '@/hooks/useTripMutations';
+import { useTripsQuery } from '@/hooks/useTripsQuery';
 
 interface TripContextValue {
   trips: Trip[];
@@ -19,59 +24,42 @@ interface TripProviderProps {
 }
 
 export function TripProvider({ children }: TripProviderProps) {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const tripsRef = useRef<Trip[]>([]);
+  const { data: trips = [], isLoading } = useTripsQuery();
+  const addTripMutation = useAddTripMutation();
+  const updateTripMutation = useUpdateTripMutation();
+  const deleteTripMutation = useDeleteTripMutation();
 
-  useEffect(() => {
-    const hydrate = async (): Promise<void> => {
-      const stored = await loadTrips();
-      tripsRef.current = stored;
-      setTrips(stored);
-      setLoading(false);
-    };
-    void hydrate();
-  }, []);
+  const addTrip = useCallback(
+    async (data: TripData, id?: string): Promise<void> => {
+      await addTripMutation.mutateAsync({ data, id });
+    },
+    [addTripMutation]
+  );
 
-  const updateAndPersistTrips = async (
-    updater: (current: Trip[]) => Trip[]
-  ): Promise<void> => {
-    const current = tripsRef.current;
-    const updated = updater(current);
-    if (updated === current) return;
+  const updateTrip = useCallback(
+    async (id: string, patch: Partial<TripData>): Promise<void> => {
+      await updateTripMutation.mutateAsync({ id, data: patch });
+    },
+    [updateTripMutation]
+  );
 
-    await saveTrips(updated);
-    tripsRef.current = updated;
-    setTrips(updated);
-  };
-
-  const addTrip = async (data: TripData, id?: string): Promise<void> => {
-    const newTrip: Trip = { id: id ?? Date.now().toString(), ...data };
-    await updateAndPersistTrips((current) => [newTrip, ...current]);
-  };
-
-  const updateTrip = async (id: string, patch: Partial<TripData>): Promise<void> => {
-    await updateAndPersistTrips((current) => {
-      let didUpdate = false;
-      const updated = current.map((trip) => {
-        if (trip.id !== id) return trip;
-        didUpdate = true;
-        return { ...trip, ...patch };
-      });
-
-      return didUpdate ? updated : current;
-    });
-  };
-
-  const deleteTrip = async (id: string): Promise<void> => {
-    await updateAndPersistTrips((current) => {
-      const updated = current.filter((trip) => trip.id !== id);
-      return updated.length === current.length ? current : updated;
-    });
-  };
+  const deleteTrip = useCallback(
+    async (id: string): Promise<void> => {
+      await deleteTripMutation.mutateAsync(id);
+    },
+    [deleteTripMutation]
+  );
 
   return (
-    <TripContext.Provider value={{ trips, loading, addTrip, updateTrip, deleteTrip }}>
+    <TripContext.Provider
+      value={{
+        trips,
+        loading: isLoading,
+        addTrip,
+        updateTrip,
+        deleteTrip,
+      }}
+    >
       {children}
     </TripContext.Provider>
   );
